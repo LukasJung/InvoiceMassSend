@@ -71,6 +71,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Invoice.cs" />
     <Compile Include="send_mail.cs" />
     <Compile Include="dbconnect.cs" />
     <Compile Include="Database\fk_auftrag.cs">

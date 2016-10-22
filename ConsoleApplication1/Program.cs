@@ -2,7 +2,8 @@
 using System.IO;
 using System.Linq;
 using System.Configuration;
-
+using System.Threading.Tasks;
+using ConsoleApplication1;
 
 namespace Rechnungsversand
 {
@@ -10,25 +11,32 @@ namespace Rechnungsversand
     {
         static void Main(string[] args)
         {
+            dbconnect.OpenConnection(); // Open database connection globally; once for every action.
+            MainAsync().Wait();
+            dbconnect.CloseConnection();
+        }
 
-            string myConnectionString = ConfigurationManager.ConnectionStrings["myConnectionString"].ConnectionString;
-            MySqlConnection connection = new MySqlConnection(myConnectionString);
-            connection.Open();
-            string[] pdfFiles = Directory.GetFiles(@"W:\\Rechnungsversand\\Rechnungen", "*.pdf").Select(path => Path.GetFileName(path)).ToArray();
-            foreach (string filename in pdfFiles)
+        private static async Task MainAsync()
+        {
+            var invoices = Invoice.GetInvoices;
+            while (true)
             {
-                MySqlCommand command = connection.CreateCommand();
-                command = new MySqlCommand("SELECT `SheetNr`,`AuftragsNr`,`AuftragsKennung`,`VorgangNr`,`Anschrift_Email` FROM `fk_auftrag` WHERE `AuftragsNr` = @Value AND `AuftragsKennung` = 3;", connection);
-                command.Parameters.AddWithValue("@Value", filename.Replace(".pdf", ""));
-                MySqlDataReader Reader;
-                Reader = command.ExecuteReader();
-                string adresse = Reader.GetString("Anschrift_Email");
-                string betreff = "Ihre Rechnung mit der Rechnungsnr: " + filename.Replace(".pdf", "") + " von Wunschreich";
-                string rnr = Reader.GetString("AuftragsNr");
-                send_mail.send(adresse, betreff,filename, rnr);
-                
+                if (invoices.Count() > 2)
+                {
+                    var first = invoices[0].Send();
+                    var second = invoices[1].Send();
+                    await Task.WhenAll(first, second);
+                    invoices.RemoveAt(0);
+                    invoices.RemoveAt(1);
+                }
+                else if (invoices.Count() == 1)
+                {
+                    await invoices[0].Send();
+                    invoices.RemoveAt(0);
+                }
+                else break;
+                invoices.RemoveAll(o => o == null);
             }
-            
         }
     }
 }

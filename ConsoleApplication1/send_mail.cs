@@ -1,12 +1,13 @@
 ﻿using System;
 using System.Net.Mail;
 using System.Net.Mime;
+using System.Threading.Tasks;
 
 namespace Rechnungsversand
 {
     public class send_mail
     {
-        public static void send(string adresse, string betreff,  string anhang, string rnr)
+        public static async Task send(string adresse, string betreff, string anhang, string rnr)
         {
             Attachment attachment;
             MailMessage wunschreich_mail = new MailMessage();
@@ -27,19 +28,24 @@ namespace Rechnungsversand
             wunschreich_mail.Subject = "yourSubject";
             attachment = new System.Net.Mail.Attachment(anhang);
             wunschreich_mail.Attachments.Add(attachment);
-            try
-            {
-                client.Send(wunschreich_mail);
-                dbconnect.updaterecord(rnr, true);
-            }
-            catch
-            {
-                dbconnect.updaterecord(rnr, true);
-            }
+
+            int retry = 0;
+            while (retry < 3)
+                try
+                {
+                    await client.SendMailAsync(wunschreich_mail);
+                    await dbconnect.updaterecord(rnr, true);
+                    break;
+                }
+                catch
+                {
+                    var err = dbconnect.updaterecord(rnr, false);
+                    retry++;
+                }
         }
 
-        
-        private static AlternateView getEmbeddedImage(String filePath)
+
+        private static AlternateView getEmbeddedImage(string filePath)
         {
             LinkedResource inline = new LinkedResource(filePath);
             inline.ContentId = Guid.NewGuid().ToString();
@@ -49,6 +55,5 @@ namespace Rechnungsversand
             alternateView.LinkedResources.Add(inline);
             return alternateView;
         }
-            
-        }
+    }
 }
