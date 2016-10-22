@@ -22,7 +22,6 @@ namespace Rechnungsversand
             
             command.Connection = connection;
             await command.ExecuteNonQueryAsync();
-            connection.Close();
         }
 
         public static void OpenConnection()
