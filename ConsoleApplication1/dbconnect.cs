@@ -12,20 +12,41 @@ namespace Rechnungsversand
 {
     public static class dbconnect
     {
-        public static void updaterecord(string rechnungsnr, bool status)
+        private static string myConnectionString;
+        public static MySqlConnection connection;
+        public static async Task updaterecord(string rechnungsnr, bool status)
         {
-            string myConnectionString = ConfigurationManager.ConnectionStrings["myConnectionString"].ConnectionString;
-            MySqlConnection connection = new MySqlConnection(myConnectionString);
-            connection.Open();
             MySqlCommand command = new MySqlCommand();
-            string SQL = "INSERT INTO `rechnungsversand` (`rechnungsnr`, `status` ) VALUES ('@rechnungsnr', '@status')";
+            string SQL = string.Format("INSERT INTO `rechnungsversand` (`rechnungsnr`, `status` ) VALUES ('{0}', '{1}')", rechnungsnr, status);
             command.CommandText = SQL;
-            command.Parameters.AddWithValue("@rechnungsnr", rechnungsnr);
-            command.Parameters.AddWithValue("@status", status);
+            
             command.Connection = connection;
-            command.ExecuteNonQuery();
-            connection.Close();
+            await command.ExecuteNonQueryAsync();
         }
 
+        public static void OpenConnection()
+        {
+            try
+            {
+                myConnectionString = ConfigurationManager.ConnectionStrings["myConnectionString"].ConnectionString;
+                connection = new MySqlConnection(myConnectionString);
+                connection.Open();
+                Console.WriteLine("[TL] MySQL Connection established.");
+            }
+            catch(Exception ex) { Console.WriteLine(ex.Message); }
+        }
+
+        public static void CloseConnection()
+        {
+            try
+            {
+                if(connection.State != System.Data.ConnectionState.Closed)
+                {
+                    connection.Close();
+                    connection.Dispose();
+                }
+            }
+            catch (Exception ex) { Console.WriteLine(ex.Message); }
+        }
 	}
 }
